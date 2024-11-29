@@ -43,7 +43,12 @@ jobs:
       - name: Download and extract policy
         if: steps.check.outputs.update_needed == 'true'
         run: |
-          Start-Process -FilePath "python" -ArgumentList "downloader.py" -Verb RunAs -Wait
+          # Elevate privileges once via scoop installation
+          (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
+          ./scoop.ps1 -RunAsAdmin
+          
+          # Run Python directly after elevation
+          python downloader.py
         shell: powershell
 
       - name: Upload p7b artifact
