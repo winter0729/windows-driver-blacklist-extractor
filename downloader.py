@@ -5,6 +5,9 @@ import os
 import subprocess 
 from tqdm import tqdm
 import hashlib
+import time
+import requests
+from requests.exceptions import RequestException
 
 def get_uuid():
     url = "https://uupdump.net/fetchupd.php?arch=amd64&ring=canary"
@@ -17,9 +20,7 @@ def get_uuid():
     except requests.RequestException as e:
         raise Exception(f"Error fetching UUID: {e}")
 
-import time
-import requests
-from requests.exceptions import RequestException
+
 
 def verify_sha256(file_path, expected_hash):
     """Verify file's SHA256 hash matches expected value"""

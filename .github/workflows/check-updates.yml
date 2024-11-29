@@ -34,31 +34,8 @@ jobs:
 
       - name: Check for updates and get update name
         id: check
-        run: |
-          $currentUuid = python -c "from downloader import get_uuid; print(get_uuid())"
-          $currentUuid | Out-File -FilePath current_uuid.txt
-          
-          # Get update name
-          $updateName = python -c "
-          import requests, json
-          uuid = '$currentUuid'
-          api_url = f'https://api.uupdump.net/get.php?id={uuid}&lang=en-us&edition=professional'
-          response = requests.get(api_url)
-          data = response.json()
-          print(data['response']['updateName'])
-          "
-          echo "update_name=$updateName" >> $env:GITHUB_OUTPUT
-          
-          if (Test-Path latest.txt) {
-            if ((Get-Content latest.txt) -ne $currentUuid) {
-              echo "update_needed=true" >> $env:GITHUB_OUTPUT
-            } else {
-              echo "update_needed=false" >> $env:GITHUB_OUTPUT
-            }
-          } else {
-            echo "update_needed=true" >> $env:GITHUB_OUTPUT
-          }
-        shell: powershell
+        run: python check_update.py
+        shell: python
 
       - name: Download and extract policy
         if: steps.check.outputs.update_needed == 'true'
