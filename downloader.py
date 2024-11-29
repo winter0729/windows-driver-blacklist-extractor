@@ -151,7 +151,7 @@ def extract_driver_policy(image_path, output_dir):
     except subprocess.CalledProcessError as e:
         log_content = ""
         if os.path.exists(log_file):
-            with open(log_file, 'r', encoding='utf-8') as f):
+            with open(log_file, 'r', encoding='utf-8') as f:
                 log_content = f"\nDISM Log:\n" + f.read()
         raise Exception(f"DISM operation failed: {e}{log_content}")
     except Exception as e:
