@@ -1,0 +1,76 @@
+# .github/workflows/check-updates.yml
+name: Check Driver Policy Updates
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check-and-update:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 tqdm
+          # Install gsudo for elevation
+          choco install gsudo -y
+        shell: powershell
+
+      - name: Initialize latest.txt if not exists
+        run: |
+          if (-not (Test-Path latest.txt)) {
+            "" | Out-File -FilePath latest.txt
+          }
+        shell: powershell
+
+      - name: Check for updates
+        id: check
+        run: |
+          $currentUuid = python -c "from downloader import get_uuid; print(get_uuid())"
+          $currentUuid | Out-File -FilePath current_uuid.txt
+          
+          if (Test-Path latest.txt) {
+            if ((Get-Content latest.txt) -ne $currentUuid) {
+              echo "update_needed=true" >> $env:GITHUB_OUTPUT
+            } else {
+              echo "update_needed=false" >> $env:GITHUB_OUTPUT
+            }
+          } else {
+            echo "update_needed=true" >> $env:GITHUB_OUTPUT
+          }
+        shell: powershell
+
+      - name: Download and extract policy
+        if: steps.check.outputs.update_needed == 'true'
+        run: gsudo python downloader.py
+        shell: cmd
+
+      - name: Upload p7b artifact
+        if: steps.check.outputs.update_needed == 'true'
+        uses: actions/upload-artifact@v3
+        with:
+          name: driversipolicy
+          path: output/driversipolicy.p7b
+          retention-days: 90
+
+      - name: Update latest UUID
+        if: steps.check.outputs.update_needed == 'true'
+        run: |
+          Copy-Item current_uuid.txt latest.txt
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add latest.txt
+          git commit -m "Update latest UUID"
+          git push
+        shell: powershell
