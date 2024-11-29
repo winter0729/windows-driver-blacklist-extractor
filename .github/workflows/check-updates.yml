@@ -44,12 +44,31 @@ jobs:
       - name: Download and extract policy
         if: steps.check.outputs.update_needed == 'true'
         run: |
-          # Elevate privileges once via scoop installation
-          (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
-          ./scoop.ps1 -RunAsAdmin
+          # Enable advanced logging
+          $env:DISM_LOG_LEVEL="4"
           
-          # Run Python directly after elevation
+          # Ensure PowerShell runs as admin
+          if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+            Write-Error "Must run as Administrator"
+            exit 1
+          }
+          
+          # Create mount directory if not exists
+          New-Item -ItemType Directory -Force -Path "output\mount"
+          
+          # Mount with explicit architecture and logging
+          $dismResult = dism.exe /Mount-Image /ImageFile:"temp\metadata.esd" /Index:3 /MountDir:"output\mount" /LogLevel:4
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "DISM mount failed: $dismResult"
+            Get-Content C:\Windows\Logs\DISM\dism.log | Select-Object -Last 20
+            exit 1
+          }
+          
+          # Continue with extraction
           python downloader.py
+          
+          # Cleanup mount point
+          dism.exe /Unmount-Image /MountDir:"output\mount" /Discard
         shell: powershell
 
       - name: Upload p7b artifact
