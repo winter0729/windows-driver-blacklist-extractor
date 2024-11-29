@@ -95,7 +95,7 @@ def convert_esd_to_wim(esd_path, output_dir):
         convert_cmd = (
             f'dism /Export-Image /SourceImageFile:"{esd_path}" /SourceIndex:3 '
             f'/DestinationImageFile:"{wim_path}" /Compress:max '
-            f'/Logpath:"{log_file}" /Loglevel:4'
+            f'/Logpath:"{log_file}" /Loglevel:4 /CheckIntegrity' 
         )
         subprocess.run(convert_cmd, check=True, shell=True)
         
