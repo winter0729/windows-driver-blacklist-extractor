@@ -59,6 +59,7 @@ jobs:
           name: ${{ steps.check.outputs.update_name }}
           path: output/driversipolicy.p7b
           retention-days: 90
+          if-no-files-found: error
 
       - name: Update latest UUID
         if: steps.check.outputs.update_needed == 'true'
