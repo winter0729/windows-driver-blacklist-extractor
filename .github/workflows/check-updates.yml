@@ -12,52 +12,68 @@ permissions:
 jobs:
   check-and-update:
     runs-on: windows-latest
-    
+    defaults:
+      run:
+        shell: powershell
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
+          architecture: 'x64'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 tqdm
-        shell: powershell
 
       - name: Initialize latest.txt if not exists
         run: |
           if (-not (Test-Path latest.txt)) {
             "" | Out-File -FilePath latest.txt
           }
-        shell: powershell
 
       - name: Check for updates and get update name
         id: check
         run: python check_update.py
-        shell: powershell
 
       - name: Download and extract policy
         if: steps.check.outputs.update_needed == 'true'
         run: |
-          # Elevate privileges once via scoop installation
-          (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
-          ./scoop.ps1 -RunAsAdmin
+          # Create directories
+          New-Item -ItemType Directory -Force -Path "temp"
+          New-Item -ItemType Directory -Force -Path "output\mount"
           
-          # Run Python directly after elevation
-          python downloader.py
-        shell: powershell
+          # Check system architecture
+          $arch = (Get-WmiObject Win32_OperatingSystem).OSArchitecture
+          Write-Host "System Architecture: $arch"
+          
+          # Enable verbose DISM logging
+          $env:DISM_LOG_PATH = ".\dism.log"
+          $env:DISM_LOG_LEVEL = "4"
+          
+          # Try to execute DISM with full path
+          $dismPath = "${env:SystemRoot}\System32\Dism.exe"
+          Write-Host "Using DISM from: $dismPath"
+          
+          # Run Python script with architecture info
+          python -v downloader.py
+          
+          # Upload DISM log on failure
+          if (-not (Test-Path "output\driversipolicy.p7b")) {
+            Get-Content .\dism.log
+            throw "DISM operation failed - check logs"
 
       - name: Upload p7b artifact
-        if: steps.check.outputs.update_needed == 'true'
+        if: steps.check.outputs.update_needed == 'true' && success()
         uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.check.outputs.update_name }}
           path: output/driversipolicy.p7b
-          retention-days: 90
+          if-no-files-found: error
 
       - name: Update latest UUID
         if: steps.check.outputs.update_needed == 'true'
@@ -68,4 +84,3 @@ jobs:
           git add latest.txt
           git commit -m "Update latest UUID for ${{ steps.check.outputs.update_name }}"
           git push
-        shell: powershell
