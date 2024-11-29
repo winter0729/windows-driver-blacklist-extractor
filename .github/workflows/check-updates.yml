@@ -35,7 +35,7 @@ jobs:
       - name: Check for updates and get update name
         id: check
         run: python check_update.py
-        shell: python
+        shell: powershell
 
       - name: Download and extract policy
         if: steps.check.outputs.update_needed == 'true'
