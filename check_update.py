@@ -37,14 +37,11 @@ def check_updates():
         with open('latest.txt', 'r') as f:
             last_uuid = f.read().strip()
             update_needed = last_uuid != current_uuid
-            
-    return {
-        'update_name': update_name,
-        'update_needed': str(update_needed).lower()
-    }
+    
+    # Set GitHub Actions outputs
+    print(f"::set-output name=update_name::{update_name}")
+    print(f"::set-output name=update_needed::{str(update_needed).lower()}")
+    return update_name, update_needed
 
 if __name__ == '__main__':
-    result = check_updates()
-    # GitHub Actions output format
-    print(f"::set-output name=update_name::{result['update_name']}")
-    print(f"::set-output name=update_needed::{result['update_needed']}")
+    check_updates()
