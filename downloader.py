@@ -81,14 +81,22 @@ def download_esd(url, output_path):
         raise Exception(f"Error downloading ESD: {e}")
 
 def extract_driver_policy(esd_path, output_dir):
-    """Extract driversipolicy.p7b from ESD using DISM"""
+    """Extract driversipolicy.p7b from ESD using DISM with verbose logging"""
     try:
         os.makedirs(output_dir, exist_ok=True)
         mount_path = os.path.join(output_dir, "mount")
         os.makedirs(mount_path, exist_ok=True)
-
-        # Mount the ESD
-        mount_cmd = f'dism /Mount-Image /ImageFile:"{esd_path}" /Index:3 /MountDir:"{mount_path}"'
+        
+        # Configure logging
+        log_dir = os.path.join(output_dir, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        log_file = os.path.join(log_dir, "dism.log")
+        
+        # Mount the ESD with verbose logging
+        mount_cmd = (
+            f'dism /Mount-Image /ImageFile:"{esd_path}" /Index:3 /MountDir:"{mount_path}" '
+            f'/Logpath:"{log_file}" /Loglevel:4'
+        )
         subprocess.run(mount_cmd, check=True, shell=True)
 
         try:
@@ -103,8 +111,11 @@ def extract_driver_policy(esd_path, output_dir):
                 raise Exception("driversipolicy.p7b not found in mounted image")
 
         finally:
-            # Always try to unmount, even if copy failed
-            unmount_cmd = f'dism /Unmount-Image /MountDir:"{mount_path}" /Discard'
+            # Unmount with verbose logging
+            unmount_cmd = (
+                f'dism /Unmount-Image /MountDir:"{mount_path}" /Discard '
+                f'/Logpath:"{log_file}" /Loglevel:4'
+            )
             subprocess.run(unmount_cmd, check=True, shell=True)
             
             # Clean up mount directory
@@ -112,7 +123,12 @@ def extract_driver_policy(esd_path, output_dir):
                 os.rmdir(mount_path)
 
     except subprocess.CalledProcessError as e:
-        raise Exception(f"DISM operation failed: {e}")
+        # Read and include log file contents in error message if available
+        log_content = ""
+        if os.path.exists(log_file):
+            with open(log_file, 'r', encoding='utf-8') as f:
+                log_content = f"\nDISM Log:\n" + f.read()
+        raise Exception(f"DISM operation failed: {e}{log_content}")
     except Exception as e:
         raise Exception(f"Error extracting file: {e}")
 
