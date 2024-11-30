@@ -6,17 +6,36 @@ import os
 from tqdm import tqdm
 from requests.exceptions import RequestException
 
+import time
+from requests.exceptions import RequestException
+
 def get_uuid():
     url = "https://uupdump.net/fetchupd.php?arch=amd64&ring=canary"
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
-        uuid_element = soup.find("code")
-        return uuid_element.text.strip()
-    except requests.RequestException as e:
-        raise Exception(f"Error fetching UUID: {e}")
-
+    max_attempts = 6
+    attempt = 1
+    
+    while attempt <= max_attempts:
+        try:
+            response = requests.get(url)
+            if response.status_code == 429:
+                if attempt == max_attempts:
+                    raise Exception("Max retry attempts reached after receiving 429 status")
+                sleep_time = 10
+                print(f"Rate limited (429). Retrying in {sleep_time} seconds... (Attempt {attempt}/{max_attempts})")
+                time.sleep(sleep_time)
+                attempt += 1
+                continue
+                
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
+            uuid_element = soup.find("code")
+            return uuid_element.text.strip()
+            
+        except RequestException as e:
+            if isinstance(e, requests.exceptions.HTTPError) and e.response.status_code == 429:
+                continue
+            raise Exception(f"Error fetching UUID: {e}")
+        
 def verify_sha256(file_path, expected_hash):
     sha256_hash = hashlib.sha256()
     with open(file_path, "rb") as f:

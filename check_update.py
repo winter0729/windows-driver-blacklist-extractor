@@ -4,7 +4,7 @@ import time
 import os
 from downloader import get_uuid
 
-def get_update_info(uuid, max_retries=3, retry_delay=10):
+def get_update_info(uuid, max_retries=6, retry_delay=10):
     api_url = f'https://api.uupdump.net/get.php?id={uuid}&lang=en-us&edition=professional'
     
     for attempt in range(max_retries):
