@@ -47,6 +47,7 @@ jobs:
           # Install scoop and 7-Zip
           (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
           ./scoop.ps1 -RunAsAdmin
+          scoop install 7zip
           
           python downloader.py
 
