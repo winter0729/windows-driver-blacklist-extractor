@@ -1,0 +1,61 @@
+# .github/workflows/process-update.yml
+name: Process Driver Policy Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_name:
+        required: true
+        type: string
+        description: 'Update name to process'
+
+permissions:
+  contents: write
+
+jobs:
+  process-update:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          architecture: 'x64'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4 tqdm
+        shell: powershell
+
+      - name: Download and extract policy
+        run: |
+          (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
+          ./scoop.ps1 -RunAsAdmin
+          scoop install 7zip
+          
+          python downloader.py
+          ./process-esd.ps1
+        shell: powershell
+
+      - name: Upload Driver Policy Update
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.update_name }}
+          path: output/driversipolicy.p7b
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Update latest UUID
+        run: |
+          Copy-Item current_uuid.txt latest.txt
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add latest.txt
+          git commit -m "${{ inputs.update_name }}"
+          git push
+        shell: powershell
