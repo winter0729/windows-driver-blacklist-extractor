@@ -20,17 +20,12 @@ def get_uuid():
     except requests.RequestException as e:
         raise Exception(f"Error fetching UUID: {e}")
 
-
-
 def verify_sha256(file_path, expected_hash):
-    """Verify file's SHA256 hash matches expected value"""
     sha256_hash = hashlib.sha256()
     with open(file_path, "rb") as f:
-        # Read file in chunks to handle large files
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
-    actual_hash = sha256_hash.hexdigest()
-    return actual_hash == expected_hash
+    return sha256_hash.hexdigest() == expected_hash
 
 def get_download_url(uuid, max_retries=6, initial_delay=10):
     api_url = f"https://api.uupdump.net/get.php?id={uuid}&lang=en-us&edition=professional"
@@ -43,37 +38,23 @@ def get_download_url(uuid, max_retries=6, initial_delay=10):
             data = response.json()
             file_info = data['response']['files']['MetadataESD_professional_en-us.esd']
             return file_info['url'], file_info['sha256']
-            
         except RequestException as e:
-            if response.status_code == 429:  # Too Many Requests
-                if attempt < max_retries - 1:  # Don't sleep on last attempt
-                    print(f"Rate limited. Waiting {delay} seconds before retry...")
-                    time.sleep(delay)
-                    delay *= 2  # Exponential backoff
-                    continue
+            if response.status_code == 429 and attempt < max_retries - 1:
+                print(f"Rate limited. Waiting {delay} seconds...")
+                time.sleep(delay)
+                delay *= 2
+                continue
             raise Exception(f"Error getting download URL: {e}")
-            
-        except KeyError as e:
-            raise Exception(f"Error parsing response data: {e}")
-    
-    raise Exception("Max retries exceeded while getting download URL")
+    raise Exception("Max retries exceeded")
 
 def download_esd(url, output_path):
     try:
         response = requests.get(url, stream=True)
         response.raise_for_status()
-        
-        # Get total file size
         total_size = int(response.headers.get('content-length', 0))
         
         with open(output_path, 'wb') as f:
-            with tqdm(
-                total=total_size,
-                unit='B',
-                unit_scale=True,
-                desc="Downloading",
-                ncols=80
-            ) as pbar:
+            with tqdm(total=total_size, unit='B', unit_scale=True, desc="Downloading") as pbar:
                 for chunk in response.iter_content(chunk_size=8192):
                     size = f.write(chunk)
                     pbar.update(size)

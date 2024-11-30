@@ -48,8 +48,9 @@ jobs:
           (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
           ./scoop.ps1 -RunAsAdmin
           
-          # Run Python directly after elevation
           python downloader.py
+
+          ./process-esd.ps1
         shell: powershell
 
       - name: Upload p7b artifact
