@@ -90,8 +90,8 @@ jobs:
         run: |
           $status = "${{ steps.set_status.outputs.status }}"
           if ($status -eq "UPDATED") {
-            echo "✅ Update found and artifact uploaded"
+            echo "Update found and artifact uploaded"
           } else {
-            echo "ℹ️ No updates available"
+            echo "No updates available"
           }
         shell: powershell
