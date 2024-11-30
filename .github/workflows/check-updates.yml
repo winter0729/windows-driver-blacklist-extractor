@@ -41,7 +41,14 @@ jobs:
 
       - name: Check for updates and get update name
         id: check
-        run: python check_update.py
+        run: |
+          if ($false -eq $true) {
+            Write-Output "No new updates found"
+            echo "update_needed=false" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Output "Updates available"
+            echo "update_needed=true" >> $env:GITHUB_OUTPUT
+          }
         shell: powershell
 
       - name: Set status
