@@ -14,21 +14,14 @@ $mountDir = Join-Path $outputDir "mount"
 New-Item -ItemType Directory -Force -Path $outputDir, $logDir, $mountDir | Out-Null
 
 $esdPath = Join-Path $tempDir "metadata.esd"
-$wimPath = Join-Path $outputDir "converted.wim"
 $logFile = Join-Path $logDir "dism.log"
 
 try {
-    # Convert ESD to WIM
-    Write-Host "Converting ESD to WIM..."
-    $convertCmd = "dism /Export-Image /SourceImageFile:`"$esdPath`" /SourceIndex:3 /DestinationImageFile:`"$wimPath`" /Compress:max /Logpath:`"$logFile`" /Loglevel:4 /CheckIntegrity"
-    Invoke-Expression $convertCmd
-    if ($LASTEXITCODE -ne 0) { throw "DISM conversion failed" }
-
-    # Mount WIM
-    Write-Host "Mounting WIM image..."
-    $mountCmd = "dism /Mount-Image /ImageFile:`"$wimPath`" /Index:3 /MountDir:`"$mountDir`" /Logpath:`"$logFile`" /Loglevel:4"
+    # Mount ESD directly
+    Write-Host "Mounting ESD image..."
+    $mountCmd = "dism /Mount-Image /ImageFile:`"$esdPath`" /Index:3 /MountDir:`"$mountDir`" /Logpath:`"$logFile`" /Loglevel:4"
     Invoke-Expression $mountCmd
-    if ($LASTEXITCODE -ne 0) { throw "WIM mount failed" }
+    if ($LASTEXITCODE -ne 0) { throw "ESD mount failed" }
 
     # Copy driversipolicy.p7b
     Write-Host "Copying driversipolicy.p7b..."
@@ -40,10 +33,9 @@ try {
     Write-Host "Cleaning up..."
     $unmountCmd = "dism /Unmount-Image /MountDir:`"$mountDir`" /Discard /Logpath:`"$logFile`" /Loglevel:4"
     Invoke-Expression $unmountCmd
-    if ($LASTEXITCODE -ne 0) { throw "WIM unmount failed" }
+    if ($LASTEXITCODE -ne 0) { throw "ESD unmount failed" }
 
     Remove-Item -Path $mountDir -Force
-    Remove-Item -Path $wimPath -Force
     Remove-Item -Path $esdPath -Force
     
     Write-Host "Process completed successfully!"
