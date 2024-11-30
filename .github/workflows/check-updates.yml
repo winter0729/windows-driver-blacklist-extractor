@@ -14,6 +14,7 @@ jobs:
     runs-on: windows-latest
     outputs:
       job_status: ${{ steps.set_status.outputs.status }}
+      has_artifact: ${{ steps.check.outputs.update_needed }}
     
     steps:
       - name: Checkout repository
@@ -76,22 +77,12 @@ jobs:
           git push
         shell: powershell
 
-      - name: Set status output
+      - name: Set final status
         id: set_status
         run: |
           if ("${{ steps.check.outputs.update_needed }}" -eq "true") {
-            echo "status=UPDATED" >> $env:GITHUB_OUTPUT
+            echo "status=Success with new artifact" >> $env:GITHUB_OUTPUT
           } else {
-            echo "status=NO_UPDATE" >> $env:GITHUB_OUTPUT
-          }
-        shell: powershell
-
-      - name: Update workflow status badge
-        run: |
-          $status = "${{ steps.set_status.outputs.status }}"
-          if ($status -eq "UPDATED") {
-            echo "Update found and artifact uploaded"
-          } else {
-            echo "No updates available"
+            echo "status=Success - no updates found" >> $env:GITHUB_OUTPUT
           }
         shell: powershell
