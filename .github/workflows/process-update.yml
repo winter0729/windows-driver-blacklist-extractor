@@ -38,6 +38,7 @@ jobs:
           ./scoop.ps1 -RunAsAdmin
           scoop install 7zip
           
+          python check_update.py
           python downloader.py
           ./process-esd.ps1
         shell: powershell
