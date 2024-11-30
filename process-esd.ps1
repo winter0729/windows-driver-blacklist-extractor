@@ -26,7 +26,7 @@ try {
 
     # Mount WIM
     Write-Host "Mounting WIM image..."
-    $mountCmd = "dism /Mount-Image /ImageFile:`"$wimPath`" /Index:1 /MountDir:`"$mountDir`" /Logpath:`"$logFile`" /Loglevel:4"
+    $mountCmd = "dism /Mount-Image /ImageFile:`"$wimPath`" /Index:3 /MountDir:`"$mountDir`" /Logpath:`"$logFile`" /Loglevel:4"
     Invoke-Expression $mountCmd
     if ($LASTEXITCODE -ne 0) { throw "WIM mount failed" }
 
