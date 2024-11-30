@@ -27,20 +27,19 @@ def check_updates():
     current_uuid = get_uuid()
     update_name = get_update_info(current_uuid)
     
-    # Write current UUID to file
     with open('current_uuid.txt', 'w') as f:
         f.write(current_uuid)
     
-    # Check if update is needed
     update_needed = True
     if os.path.exists('latest.txt'):
         with open('latest.txt', 'r') as f:
             last_uuid = f.read().strip()
             update_needed = last_uuid != current_uuid
     
-    # Set GitHub Actions outputs
-    print(f"::set-output name=update_name::{update_name}")
-    print(f"::set-output name=update_needed::{str(update_needed).lower()}")
+    # Use environment files instead of set-output
+    with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+        f.write(f"update_name={update_name}\n")
+        f.write(f"update_needed={str(update_needed).lower()}\n")
     return update_name, update_needed
 
 if __name__ == '__main__':

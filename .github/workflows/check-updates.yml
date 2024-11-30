@@ -54,9 +54,9 @@ jobs:
           ./process-esd.ps1
         shell: powershell
 
-      - name: Upload p7b artifact
+      - name: Upload Driver Policy Update - ${{ steps.check.outputs.update_name }}
         if: steps.check.outputs.update_needed == 'true'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.check.outputs.update_name }}
           path: output/driversipolicy.p7b
@@ -70,6 +70,6 @@ jobs:
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
           git add latest.txt
-          git commit -m "Update latest UUID for ${{ steps.check.outputs.update_name }}"
+          git commit -m "${{ steps.check.outputs.update_name }}"
           git push
         shell: powershell
