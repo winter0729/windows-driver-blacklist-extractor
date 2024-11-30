@@ -13,8 +13,7 @@ jobs:
   check-and-update:
     runs-on: windows-latest
     outputs:
-      status: ${{ steps.set-status.outputs.status }}
-      update_name: ${{ steps.check.outputs.update_name }}
+      job_status: ${{ steps.set_status.outputs.status }}
     
     steps:
       - name: Checkout repository
@@ -41,29 +40,13 @@ jobs:
 
       - name: Check for updates and get update name
         id: check
-        run: |
-          if ($false -eq $true) {
-            Write-Output "No new updates found"
-            echo "update_needed=false" >> $env:GITHUB_OUTPUT
-          } else {
-            Write-Output "Updates available"
-            echo "update_needed=true" >> $env:GITHUB_OUTPUT
-          }
-        shell: powershell
-
-      - name: Set status
-        id: set-status
-        run: |
-          if ("${{ steps.check.outputs.update_needed }}" -eq "true") {
-            echo "status=update_found" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "status=no_update" >> $env:GITHUB_OUTPUT
-          }
+        run: python check_update.py
         shell: powershell
 
       - name: Download and extract policy
         if: steps.check.outputs.update_needed == 'true'
         run: |
+          # Install scoop and 7-Zip
           (New-Object System.Net.WebClient).DownloadFile('https://get.scoop.sh', 'scoop.ps1')
           ./scoop.ps1 -RunAsAdmin
           scoop install 7zip
@@ -73,11 +56,11 @@ jobs:
           ./process-esd.ps1
         shell: powershell
 
-      - name: Upload Driver Policy Update
+      - name: Upload Driver Policy Update - ${{ steps.check.outputs.update_name }}
         if: steps.check.outputs.update_needed == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: driver-policy-${{ steps.check.outputs.update_name }}
+          name: ${{ steps.check.outputs.update_name }}
           path: output/driversipolicy.p7b
           retention-days: 90
           if-no-files-found: error
@@ -93,14 +76,22 @@ jobs:
           git push
         shell: powershell
 
-      - name: Create job summary
+      - name: Set status output
+        id: set_status
         run: |
           if ("${{ steps.check.outputs.update_needed }}" -eq "true") {
-            echo "### ✅ New Update Found!" >> $env:GITHUB_STEP_SUMMARY
-            echo "Update Name: ${{ steps.check.outputs.update_name }}" >> $env:GITHUB_STEP_SUMMARY
-            echo "Artifact has been uploaded." >> $env:GITHUB_STEP_SUMMARY
+            echo "status=UPDATED" >> $env:GITHUB_OUTPUT
           } else {
-            echo "### ℹ️ No Updates Available" >> $env:GITHUB_STEP_SUMMARY
-            echo "No new driver policy updates were found." >> $env:GITHUB_STEP_SUMMARY
+            echo "status=NO_UPDATE" >> $env:GITHUB_OUTPUT
+          }
+        shell: powershell
+
+      - name: Update workflow status badge
+        run: |
+          $status = "${{ steps.set_status.outputs.status }}"
+          if ($status -eq "UPDATED") {
+            echo "✅ Update found and artifact uploaded"
+          } else {
+            echo "ℹ️ No updates available"
           }
         shell: powershell
