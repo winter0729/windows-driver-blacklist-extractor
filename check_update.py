@@ -10,7 +10,7 @@ def get_update_info(uuid, max_retries=6, retry_delay=10):
     for attempt in range(max_retries):
         try:
             response = requests.get(api_url)
-            if response.status_code == 429:  # Rate limit
+            if response.status_code in (429, 500):  # Rate limit
                 if attempt < max_retries - 1:
                     time.sleep(retry_delay)
                     continue

@@ -17,7 +17,7 @@ def get_uuid():
     while attempt <= max_attempts:
         try:
             response = requests.get(url)
-            if response.status_code == 429:
+            if response.status_code in (429, 500):
                 if attempt == max_attempts:
                     raise Exception("Max retry attempts reached after receiving 429 status")
                 sleep_time = 10
@@ -35,7 +35,7 @@ def get_uuid():
             if isinstance(e, requests.exceptions.HTTPError) and e.response.status_code == 429:
                 continue
             raise Exception(f"Error fetching UUID: {e}")
-        
+            
 def verify_sha256(file_path, expected_hash):
     sha256_hash = hashlib.sha256()
     with open(file_path, "rb") as f:
