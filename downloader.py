@@ -11,7 +11,7 @@ from requests.exceptions import RequestException
 
 def get_uuid():
     url = "https://uupdump.net/fetchupd.php?arch=amd64&ring=canary"
-    max_attempts = 6
+    max_attempts = 100
     attempt = 1
     
     while attempt <= max_attempts:
